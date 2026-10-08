@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'ASIA/JAKARTA',
 
     /*
     |--------------------------------------------------------------------------
@@ -123,6 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'instansi' => env('APP_INSTANSI', 'UNPADFAPERTA'),
+    'instansi' => env('APP_INSTANSI', 'UNPAD_FAPERTA'),
 
 ];
