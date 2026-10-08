@@ -2,14 +2,15 @@
 
 use App\Http\Controllers\Admin\GreenHouseController;
 use App\Http\Controllers\Admin\LahanController as AdminLahanController;
-use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
-use App\Http\Controllers\Admin\PerawatanController as AdminPerawatanController;
+use App\Http\Controllers\Admin\PengembalianController as AdminPengembalianController;
+use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\BuktiBayarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Peminjam\LahanController as PeminjamLahanController;
 use App\Http\Controllers\Peminjam\PembayaranController as PeminjamPembayaranController;
 use App\Http\Controllers\Peminjam\PeminjamanController as PeminjamPeminjamanController;
+use App\Http\Controllers\Peminjam\PengembalianController as PeminjamPengembalianController;
 use App\Http\Controllers\Peminjam\PerawatanController as PeminjamPerawatanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\RoleMiddleware;
@@ -49,9 +50,10 @@ Route::middleware(['auth', RoleMiddleware::class.':admin'])
         Route::post('peminjamans/{peminjaman}/bayar/konfirmasi', [AdminPembayaranController::class, 'konfirmasi'])->name('peminjamans.bayar.konfirmasi');
         Route::post('peminjamans/{peminjaman}/bayar/tolak', [AdminPembayaranController::class, 'tolak'])->name('peminjamans.bayar.tolak');
 
-        Route::post('peminjamans/{peminjaman}/ambil-alih', [AdminPerawatanController::class, 'ambilAlih'])->name('peminjamans.ambil-alih');
-        Route::post('peminjamans/{peminjaman}/perawatan', [AdminPerawatanController::class, 'store'])->name('peminjamans.perawatan.store');
-        Route::delete('perawatan-logs/{perawatan_log}', [AdminPerawatanController::class, 'destroy'])->name('perawatan-logs.destroy');
+        Route::post('peminjamans/{peminjaman}/kembalikan', [AdminPengembalianController::class, 'kembalikan'])->name('peminjamans.kembalikan');
+        Route::post('peminjamans/{peminjaman}/pembersihan', [AdminPengembalianController::class, 'catat'])->name('peminjamans.pembersihan.store');
+        Route::post('peminjamans/{peminjaman}/selesaikan', [AdminPengembalianController::class, 'selesaikan'])->name('peminjamans.selesaikan');
+        Route::delete('pembersihan/{perawatan_log}', [AdminPengembalianController::class, 'hapus'])->name('pembersihan.destroy');
     });
 
 Route::middleware(['auth', RoleMiddleware::class.':peminjam'])
@@ -64,6 +66,7 @@ Route::middleware(['auth', RoleMiddleware::class.':peminjam'])
 
         Route::post('peminjamans/{peminjaman}/bayar', [PeminjamPembayaranController::class, 'store'])->name('peminjamans.bayar');
         Route::post('peminjamans/{peminjaman}/perawatan', [PeminjamPerawatanController::class, 'store'])->name('peminjamans.perawatan.store');
+        Route::post('peminjamans/{peminjaman}/kembali', [PeminjamPengembalianController::class, 'store'])->name('peminjamans.kembali');
     });
 
 require __DIR__.'/auth.php';

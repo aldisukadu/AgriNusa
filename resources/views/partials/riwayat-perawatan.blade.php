@@ -1,7 +1,7 @@
 @php
     $logs = $peminjaman->perawatanLogs()->with('user')->latest('tanggal')->latest('id')->get();
 @endphp
-<h3 class="font-semibold">Riwayat perawatan</h3>
+<h3 class="font-semibold">Riwayat perawatan dan pembersihan</h3>
 <div class="mt-2 overflow-x-auto">
     <table class="w-full text-sm text-left">
         <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
@@ -26,8 +26,8 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">
-                        @if (($admin ?? false) && $log->pelaksana === 'admin' && $peminjaman->status === 'aktif')
-                            <form method="POST" action="{{ route('admin.perawatan-logs.destroy', $log) }}" onsubmit="return confirm('Hapus catatan ini? Total biaya dihitung ulang.')">
+                        @if (($admin ?? false) && $log->pelaksana === 'admin' && $peminjaman->status === 'menunggu_pemeriksaan')
+                            <form method="POST" action="{{ route('admin.pembersihan.destroy', $log) }}" onsubmit="return confirm('Hapus catatan ini? Total biaya dihitung ulang.')">
                                 @csrf @method('DELETE')
                                 <button class="text-red-600 hover:underline">Hapus</button>
                             </form>
@@ -35,7 +35,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-3 py-4 text-gray-500">Belum ada catatan perawatan.</td></tr>
+                <tr><td colspan="7" class="px-3 py-4 text-gray-500">Belum ada catatan.</td></tr>
             @endforelse
         </tbody>
     </table>

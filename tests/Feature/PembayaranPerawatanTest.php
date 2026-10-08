@@ -51,7 +51,6 @@ class PembayaranPerawatanTest extends TestCase
         ], $ubah);
     }
 
-    // ---------- pembayaran ----------
     public function test_transfer_wajib_bukti_dan_file_tersimpan_privat(): void
     {
         $p = $this->disetujui();
@@ -168,7 +167,6 @@ class PembayaranPerawatanTest extends TestCase
         $this->actingAs($p->user)->get(route('bukti-bayar', $p))->assertNotFound();
     }
 
-    // ---------- perawatan peminjam ----------
     public function test_peminjam_mencatat_perawatan_tanpa_foto(): void
     {
         $p = $this->aktif();
@@ -208,6 +206,15 @@ class PembayaranPerawatanTest extends TestCase
         $this->assertSame(1, PerawatanLog::count());
     }
 
+    public function test_perawatan_tidak_bisa_memakai_kegiatan_pembersihan(): void
+    {
+        $p = $this->aktif();
+
+        $this->actingAs($p->user)
+            ->post(route('peminjam.peminjamans.perawatan.store', $p), $this->dataPerawatan(['kegiatan' => 'pembersihan']))
+            ->assertSessionHasErrors('kegiatan');
+    }
+
     public function test_perawatan_hanya_saat_aktif(): void
     {
         $p = $this->disetujui();
@@ -224,96 +231,5 @@ class PembayaranPerawatanTest extends TestCase
         $this->actingAs($this->buatUser())
             ->post(route('peminjam.peminjamans.perawatan.store', $p), $this->dataPerawatan())
             ->assertForbidden();
-    }
-
-    public function test_catatan_memulihkan_peringatan_dan_terabaikan_tetapi_tidak_diambil_alih(): void
-    {
-        foreach (['peringatan', 'terabaikan'] as $status) {
-            $p = $this->aktif(['status_perawatan' => $status]);
-            $this->actingAs($p->user)->post(route('peminjam.peminjamans.perawatan.store', $p), $this->dataPerawatan());
-            $this->assertSame('normal', $p->fresh()->status_perawatan, $status);
-        }
-
-        $p = $this->aktif(['status_perawatan' => 'diambil_alih']);
-        $this->actingAs($p->user)->post(route('peminjam.peminjamans.perawatan.store', $p), $this->dataPerawatan());
-        $this->assertSame('diambil_alih', $p->fresh()->status_perawatan);
-    }
-
-    // ---------- perawatan admin ----------
-    public function test_ambil_alih_hanya_jika_terabaikan(): void
-    {
-        $admin = $this->buatUser('admin');
-
-        $normal = $this->aktif();
-        $this->actingAs($admin)->post(route('admin.peminjamans.ambil-alih', $normal))->assertSessionHasErrors('status_perawatan');
-        $this->assertSame('normal', $normal->fresh()->status_perawatan);
-
-        $abai = $this->aktif(['status_perawatan' => 'terabaikan']);
-        $this->actingAs($admin)->post(route('admin.peminjamans.ambil-alih', $abai))->assertSessionHasNoErrors();
-        $this->assertSame('diambil_alih', $abai->fresh()->status_perawatan);
-    }
-
-    public function test_admin_tidak_bisa_mencatat_biaya_sebelum_ambil_alih(): void
-    {
-        $p = $this->aktif(['status_perawatan' => 'terabaikan']);
-
-        $this->actingAs($this->buatUser('admin'))
-            ->post(route('admin.peminjamans.perawatan.store', $p), $this->dataPerawatan(['biaya' => 25000]))
-            ->assertSessionHasErrors('status_perawatan');
-
-        $this->assertSame(0, PerawatanLog::count());
-    }
-
-    public function test_biaya_admin_dijumlahkan_dan_terlihat_oleh_peminjam(): void
-    {
-        $p = $this->aktif(['status_perawatan' => 'diambil_alih']);
-        $admin = $this->buatUser('admin');
-        $url = route('admin.peminjamans.perawatan.store', $p);
-
-        $this->actingAs($admin)->post($url, $this->dataPerawatan(['biaya' => 25000]))->assertSessionHasNoErrors();
-        $this->actingAs($admin)->post($url, $this->dataPerawatan(['biaya' => 15000, 'kegiatan' => 'pemupukan']))->assertSessionHasNoErrors();
-
-        $p->refresh();
-        $this->assertSame(40000, $p->total_biaya_perawatan);
-        $this->assertSame(60000, $p->saldo_deposit);
-        $this->assertSame(2, PerawatanLog::where('pelaksana', 'admin')->count());
-
-        $this->actingAs($p->user)->get(route('peminjam.peminjamans.show', $p))->assertOk()->assertSee('40.000');
-    }
-
-    public function test_hapus_catatan_admin_menghitung_ulang_total(): void
-    {
-        $p = $this->aktif(['status_perawatan' => 'diambil_alih']);
-        $admin = $this->buatUser('admin');
-        $url = route('admin.peminjamans.perawatan.store', $p);
-
-        $this->actingAs($admin)->post($url, $this->dataPerawatan(['biaya' => 25000]));
-        $this->actingAs($admin)->post($url, $this->dataPerawatan(['biaya' => 15000]));
-
-        $pertama = PerawatanLog::where('biaya', 25000)->firstOrFail();
-        $this->actingAs($admin)->delete(route('admin.perawatan-logs.destroy', $pertama))->assertSessionHasNoErrors();
-
-        $this->assertSame(15000, $p->fresh()->total_biaya_perawatan);
-        $this->assertDatabaseHas('aktivitas_logs', ['aksi' => 'hapus_perawatan_admin', 'peminjaman_id' => $p->id]);
-    }
-
-    public function test_catatan_peminjam_tidak_bisa_dihapus_admin(): void
-    {
-        $p = $this->aktif();
-        $this->actingAs($p->user)->post(route('peminjam.peminjamans.perawatan.store', $p), $this->dataPerawatan());
-        $log = PerawatanLog::firstOrFail();
-
-        $this->actingAs($this->buatUser('admin'))
-            ->delete(route('admin.perawatan-logs.destroy', $log))
-            ->assertSessionHasErrors('hapus');
-
-        $this->assertDatabaseHas('perawatan_logs', ['id' => $log->id]);
-    }
-
-    public function test_peminjam_tidak_bisa_memakai_route_admin(): void
-    {
-        $p = $this->aktif(['status_perawatan' => 'terabaikan']);
-
-        $this->actingAs($p->user)->post(route('admin.peminjamans.ambil-alih', $p))->assertForbidden();
     }
 }

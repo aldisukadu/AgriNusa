@@ -33,12 +33,7 @@ class Peminjaman extends Model
     public const DEPOSIT_DIPOTONG = 'dipotong';
     public const DEPOSIT_TERPAKAI_HABIS = 'terpakai_habis';
 
-    public const RAWAT_NORMAL = 'normal';
-    public const RAWAT_PERINGATAN = 'peringatan';
-    public const RAWAT_TERABAIKAN = 'terabaikan';
-    public const RAWAT_DIAMBIL_ALIH = 'diambil_alih';
-
-    // Hanya kolom form pengajuan. Kolom lain diisi eksplisit di controller.
+    // Hanya kolom form pengajuan. Kolom lain diisi eksplisit di service.
     protected $fillable = [
         'user_id',
         'lahan_id',
@@ -58,10 +53,9 @@ class Peminjaman extends Model
             'batas_bayar' => 'datetime',
             'tanggal_bayar' => 'datetime',
             'aktif_sejak' => 'datetime',
-            'peringatan_sejak' => 'datetime',
             'tanggal_deposit_selesai' => 'datetime',
             'nominal_deposit' => 'integer',
-            'total_biaya_perawatan' => 'integer',
+            'total_biaya_pembersihan' => 'integer',
             'kekurangan_bayar' => 'integer',
         ];
     }
@@ -98,18 +92,18 @@ class Peminjaman extends Model
 
     protected function saldoDeposit(): Attribute
     {
-        return Attribute::get(fn () => max(0, $this->nominal_deposit - $this->total_biaya_perawatan));
+        return Attribute::get(fn () => max(0, $this->nominal_deposit - $this->total_biaya_pembersihan));
     }
 
     protected function kekuranganBiaya(): Attribute
     {
-        return Attribute::get(fn () => max(0, $this->total_biaya_perawatan - $this->nominal_deposit));
+        return Attribute::get(fn () => max(0, $this->total_biaya_pembersihan - $this->nominal_deposit));
     }
 
     // biaya 0 -> dikembalikan; biaya < deposit -> dipotong; biaya >= deposit -> terpakai_habis.
     public function hitungPenyelesaianDeposit(): array
     {
-        $biaya = $this->total_biaya_perawatan;
+        $biaya = $this->total_biaya_pembersihan;
         $deposit = $this->nominal_deposit;
 
         if ($biaya === 0) {

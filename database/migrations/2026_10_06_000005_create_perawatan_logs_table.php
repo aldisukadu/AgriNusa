@@ -15,13 +15,15 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->enum('pelaksana', ['peminjam', 'admin']);
             $table->date('tanggal');
-            $table->enum('kegiatan', ['menyiram', 'pemupukan', 'penyiangan', 'pengendalian_hama', 'lainnya']);
+            $table->enum('kegiatan', [
+                'menyiram', 'pemupukan', 'penyiangan', 'pengendalian_hama', 'lainnya', 'pembersihan',
+            ]);
             $table->unsignedBigInteger('biaya')->default(0);
             $table->text('catatan')->nullable();
             $table->string('foto')->nullable();
             $table->timestamps();
 
-            $table->index(['peminjaman_id', 'pelaksana', 'created_at'], 'perawatan_logs_deteksi_index');
+            $table->index(['peminjaman_id', 'pelaksana'], 'perawatan_logs_peminjaman_pelaksana_index');
         });
 
         // SQLite (dipakai test) tidak mendukung ADD CONSTRAINT.

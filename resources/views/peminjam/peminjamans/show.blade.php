@@ -14,31 +14,12 @@
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100">
                 @include('partials.flash')
 
-                @if ($peminjaman->status === 'aktif')
-                    @if ($peminjaman->status_perawatan === 'peringatan')
-                        <div class="mb-4 p-3 rounded bg-yellow-100 text-yellow-800 text-sm">
-                            Belum ada catatan perawatan dalam beberapa hari terakhir. Catat perawatan sekarang. Jika lebih dari {{ config('greenhouse.terabaikan_hari') }} hari tanpa catatan, lahan ditandai terabaikan dan admin dapat merawatnya dengan biaya dari deposit Anda.
-                        </div>
-                    @elseif ($peminjaman->status_perawatan === 'terabaikan')
-                        <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">
-                            Lahan ditandai terabaikan. Catat perawatan sekarang. Jika admin sudah mengambil alih, biayanya dipotong dari deposit.
-                        </div>
-                    @elseif ($peminjaman->status_perawatan === 'diambil_alih')
-                        <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">
-                            Admin merawat lahan ini. Biaya perawatan dipotong dari deposit Anda (lihat rincian di bawah).
-                        </div>
-                    @endif
-                @endif
-
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     <div><dt class="text-gray-500">Lahan</dt><dd>{{ $peminjaman->lahan->kode }} · {{ $peminjaman->lahan->greenHouse->nama }}</dd></div>
                     <div><dt class="text-gray-500">Periode</dt><dd>{{ $peminjaman->tanggal_mulai->format('d/m/Y') }} – {{ $peminjaman->tanggal_selesai->format('d/m/Y') }}</dd></div>
                     <div><dt class="text-gray-500">Tanaman · Tujuan</dt><dd>{{ $peminjaman->jenis_tanaman }} · {{ $peminjaman->tujuan }}</dd></div>
                     <div><dt class="text-gray-500">Status</dt><dd><x-badge :value="$peminjaman->status" /></dd></div>
                     <div><dt class="text-gray-500">Status deposit</dt><dd><x-badge :value="$peminjaman->status_deposit" /></dd></div>
-                    @if ($peminjaman->status === 'aktif')
-                        <div><dt class="text-gray-500">Status perawatan</dt><dd><x-badge :value="$peminjaman->status_perawatan" /></dd></div>
-                    @endif
                     @if ($peminjaman->batas_bayar && $peminjaman->status === 'disetujui')
                         <div><dt class="text-gray-500">Batas pembayaran</dt><dd>{{ $peminjaman->batas_bayar->format('d/m/Y H:i') }}</dd></div>
                     @endif
@@ -47,6 +28,13 @@
                     @endif
                     @if ($peminjaman->bukti_bayar)
                         <div><dt class="text-gray-500">Bukti bayar</dt><dd><a href="{{ route('bukti-bayar', $peminjaman) }}" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Lihat</a></dd></div>
+                    @endif
+                    @if ($peminjaman->tanggal_kembali)
+                        <div><dt class="text-gray-500">Dikembalikan</dt><dd>{{ $peminjaman->tanggal_kembali->format('d/m/Y') }}</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-gray-500">Kondisi saat dikembalikan</dt><dd>{{ $peminjaman->kondisi_kembali }}</dd></div>
+                    @endif
+                    @if ($peminjaman->foto_kembali)
+                        <div><dt class="text-gray-500">Foto kondisi lahan</dt><dd><a href="{{ asset('storage/'.$peminjaman->foto_kembali) }}" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Lihat</a></dd></div>
                     @endif
                     @if ($peminjaman->catatan_admin)
                         <div class="sm:col-span-2"><dt class="text-gray-500">Catatan admin</dt><dd>{{ $peminjaman->catatan_admin }}</dd></div>
@@ -79,6 +67,12 @@
                     @endif
                 @endif
 
+                @if ($peminjaman->status === 'menunggu_pemeriksaan')
+                    <div class="mt-6 p-3 rounded bg-blue-100 text-blue-800 text-sm">
+                        Pengembalian sudah dicatat. Admin akan memeriksa lahan dan menyelesaikan deposit Anda.
+                    </div>
+                @endif
+
                 @if ($peminjaman->status_deposit !== 'belum_dibayar')
                     @include('partials.rincian-deposit')
                 @endif
@@ -90,7 +84,26 @@
 
             @if ($peminjaman->status === 'aktif')
                 <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100">
-                    <h3 class="font-semibold">Catat perawatan</h3>
+                    <h3 class="font-semibold">Kembalikan lahan</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Bersihkan lahan lebih dulu (sisa tanaman, media, dan peralatan), lalu foto kondisinya. Jika lahan tidak bersih atau tidak dikembalikan sampai {{ config('greenhouse.batas_kembali_hari') }} hari setelah tanggal selesai, admin yang membersihkannya dan biayanya dipotong dari deposit.
+                    </p>
+                    <form method="POST" action="{{ route('peminjam.peminjamans.kembali', $peminjaman) }}" enctype="multipart/form-data" class="mt-3" onsubmit="return confirm('Kembalikan lahan sekarang?')">
+                        @csrf
+                        <div>
+                            <x-input-label for="kondisi_kembali" value="Kondisi lahan" />
+                            <textarea id="kondisi_kembali" name="kondisi_kembali" rows="2" required class="{{ $inputClass }}">{{ old('kondisi_kembali') }}</textarea>
+                        </div>
+                        <div class="mt-3">
+                            <x-input-label for="foto_kembali" value="Foto kondisi lahan (wajib; JPG, PNG, atau WEBP, maks 4 MB)" />
+                            <input id="foto_kembali" name="foto_kembali" type="file" accept=".jpg,.jpeg,.png,.webp" required class="{{ $fileClass }}">
+                        </div>
+                        <x-primary-button class="mt-4">Kembalikan lahan</x-primary-button>
+                    </form>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100">
+                    <h3 class="font-semibold">Catat perawatan tanaman (opsional)</h3>
                     <form method="POST" action="{{ route('peminjam.peminjamans.perawatan.store', $peminjaman) }}" enctype="multipart/form-data" class="mt-3">
                         @csrf
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
