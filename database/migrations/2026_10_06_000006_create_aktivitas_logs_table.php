@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('aktivitas_logs', function (Blueprint $table) {
             $table->id();
-            // nullOnDelete: audit trail tetap ada walau pengguna dihapus; null = aksi sistem (scheduler)
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('peminjaman_id')->nullable()->constrained('peminjamans')->nullOnDelete();
             $table->foreignId('lahan_id')->nullable()->constrained('lahans')->nullOnDelete();

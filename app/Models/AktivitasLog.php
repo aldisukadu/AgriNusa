@@ -25,10 +25,7 @@ class AktivitasLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Catat aksi. user_id null = aksi sistem (mis. scheduler).
-     * Jangan masukkan password/token ke $lama/$baru.
-     */
+    // user_id null = aksi sistem (scheduler).
     public static function catat(
         string $aksi,
         ?int $peminjamanId = null,

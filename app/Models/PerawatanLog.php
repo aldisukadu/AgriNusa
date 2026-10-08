@@ -14,8 +14,7 @@ class PerawatanLog extends Model
 
     public const KEGIATAN = ['menyiram', 'pemupukan', 'penyiangan', 'pengendalian_hama', 'lainnya'];
 
-    // 'pelaksana', 'user_id', dan 'biaya' sengaja tidak mass-assignable:
-    // controller harus mengisinya sendiri berdasarkan user yang login, bukan dari input form.
+    // pelaksana, user_id, dan biaya diisi controller, bukan dari input form.
     protected $fillable = ['peminjaman_id', 'tanggal', 'kegiatan', 'catatan', 'foto'];
 
     protected function casts(): array

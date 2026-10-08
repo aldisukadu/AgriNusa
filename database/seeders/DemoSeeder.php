@@ -21,11 +21,11 @@ class DemoSeeder extends Seeder
 
         $gh1 = GreenHouse::firstOrCreate(
             ['nama' => 'Green House A'],
-            ['lokasi' => 'Belakang Gedung Pertanian', 'keterangan' => 'Untuk tanaman sayuran daun.']
+            ['lokasi' => 'Belakang Gedung Pertanian', 'keterangan' => 'Tanaman sayuran daun.']
         );
         $gh2 = GreenHouse::firstOrCreate(
             ['nama' => 'Green House B'],
-            ['lokasi' => 'Samping Laboratorium', 'keterangan' => 'Untuk tanaman buah dan hidroponik.']
+            ['lokasi' => 'Samping Laboratorium', 'keterangan' => 'Tanaman buah dan hidroponik.']
         );
 
         foreach ([[$gh1, 'A', 150000], [$gh2, 'B', 200000]] as [$gh, $huruf, $deposit]) {

@@ -10,12 +10,11 @@ return new class extends Migration
     {
         Schema::create('lahans', function (Blueprint $table) {
             $table->id();
-            // restrictOnDelete: green house yang masih punya lahan tidak boleh dihapus
             $table->foreignId('green_house_id')->constrained('green_houses')->restrictOnDelete();
             $table->string('kode', 30)->unique();
-            $table->decimal('luas', 8, 2); // m2
+            $table->decimal('luas', 8, 2);
             $table->string('media_tanam');
-            $table->unsignedBigInteger('deposit'); // rupiah bulat, nominal default
+            $table->unsignedBigInteger('deposit');
             $table->enum('status', ['tersedia', 'perawatan'])->default('tersedia');
             $table->timestamps();
         });

@@ -14,21 +14,10 @@ class User extends Authenticatable
     public const ROLE_ADMIN = 'admin';
     public const ROLE_PEMINJAM = 'peminjam';
 
-    // 'role' SENGAJA tidak ada di $fillable: registrasi Breeze memakai User::create(),
-    // sehingga pendaftar selalu mendapat default DB ('peminjam').
-    // Mengubah role harus eksplisit: $user->role = 'admin'; $user->save();
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'status_pengguna',
-        'no_hp',
-    ];
+    // 'role' sengaja tidak fillable agar pendaftar tidak bisa menjadi admin.
+    protected $fillable = ['name', 'email', 'password', 'status_pengguna', 'no_hp'];
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
