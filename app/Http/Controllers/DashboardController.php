@@ -12,11 +12,25 @@ class DashboardController extends Controller
     public function admin(): View
     {
         return view('admin.dashboard', [
-            'menunggu' => Peminjaman::where('status', Peminjaman::STATUS_MENUNGGU)->count(),
-            'pemeriksaan' => Peminjaman::where('status', Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN)->count(),
-            'aktif' => Peminjaman::where('status', Peminjaman::STATUS_AKTIF)->count(),
-            'lahanTersedia' => Lahan::where('status', Lahan::STATUS_TERSEDIA)->count(),
-            'lahanTotal' => Lahan::count(),
+            'jumlah' => [
+                'pengajuan' => Peminjaman::where('status', Peminjaman::STATUS_MENUNGGU)->count(),
+                'laporanBayar' => $this->queryLaporanBayar()->count(),
+                'pemeriksaan' => Peminjaman::where('status', Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN)->count(),
+                'aktif' => Peminjaman::where('status', Peminjaman::STATUS_AKTIF)->count(),
+                'lahanTersedia' => Lahan::where('status', Lahan::STATUS_TERSEDIA)->count(),
+                'lahanPerawatan' => Lahan::where('status', Lahan::STATUS_PERAWATAN)->count(),
+                'lahanTotal' => Lahan::count(),
+            ],
+            'pengajuan' => Peminjaman::with(['user', 'lahan'])
+                ->where('status', Peminjaman::STATUS_MENUNGGU)
+                ->oldest()->limit(5)->get(),
+            'laporanBayar' => $this->queryLaporanBayar()
+                ->with(['user', 'lahan'])
+                ->oldest('tanggal_bayar')->limit(5)->get(),
+            'pemeriksaan' => Peminjaman::with(['user', 'lahan'])
+                ->where('status', Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN)
+                ->oldest('tanggal_kembali')->limit(5)->get(),
+            'lahans' => Lahan::with('greenHouse')->orderBy('kode')->get(),
         ]);
     }
 
@@ -24,10 +38,32 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        $menungguBayar = $user->peminjamans()
+            ->where('status', Peminjaman::STATUS_DISETUJUI)
+            ->where('status_deposit', Peminjaman::DEPOSIT_BELUM_DIBAYAR)
+            ->with('lahan')
+            ->orderBy('batas_bayar')
+            ->get();
+
+        $aktif = $user->peminjamans()
+            ->where('status', Peminjaman::STATUS_AKTIF)
+            ->with('lahan')
+            ->orderBy('tanggal_selesai')
+            ->get();
+
         return view('peminjam.dashboard', [
-            'aktif' => $user->peminjamans()->where('status', Peminjaman::STATUS_AKTIF)->count(),
-            'menunggu' => $user->peminjamans()->where('status', Peminjaman::STATUS_MENUNGGU)->count(),
-            'disetujui' => $user->peminjamans()->where('status', Peminjaman::STATUS_DISETUJUI)->count(),
+            'menungguBayar' => $menungguBayar,
+            'aktif' => $aktif,
+            'jumlahMenunggu' => $user->peminjamans()->where('status', Peminjaman::STATUS_MENUNGGU)->count(),
+            'jumlahPemeriksaan' => $user->peminjamans()->where('status', Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN)->count(),
+            'batasKembali' => (int) config('greenhouse.batas_kembali_hari'),
         ]);
+    }
+
+    private function queryLaporanBayar()
+    {
+        return Peminjaman::where('status', Peminjaman::STATUS_DISETUJUI)
+            ->where('status_deposit', Peminjaman::DEPOSIT_BELUM_DIBAYAR)
+            ->whereNotNull('tanggal_bayar');
     }
 }

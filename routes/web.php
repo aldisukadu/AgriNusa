@@ -41,6 +41,7 @@ Route::middleware(['auth', RoleMiddleware::class.':admin'])
             ->except('show')->parameters(['green-houses' => 'green_house']);
         Route::resource('lahans', AdminLahanController::class)
             ->except('show')->parameters(['lahans' => 'lahan']);
+        Route::patch('lahans/{lahan}/cepat', [AdminLahanController::class, 'cepatUbah'])->name('lahans.cepat');
 
         Route::get('peminjamans', [AdminPeminjamanController::class, 'index'])->name('peminjamans.index');
         Route::get('peminjamans/{peminjaman}', [AdminPeminjamanController::class, 'show'])->name('peminjamans.show');

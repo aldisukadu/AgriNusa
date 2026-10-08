@@ -71,6 +71,24 @@ class LahanController extends Controller
         return redirect()->route('admin.lahans.index')->with('success', 'Lahan dihapus.');
     }
 
+    public function cepatUbah(Request $request, Lahan $lahan): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in([Lahan::STATUS_TERSEDIA, Lahan::STATUS_PERAWATAN])],
+            'deposit' => ['required', 'integer', 'min:0', 'max:100000000'],
+        ]);
+
+        $lama = $lahan->only(['status', 'deposit']);
+        $lahan->update($data);
+        $baru = $lahan->only(['status', 'deposit']);
+
+        if ($lama !== $baru) {
+            AktivitasLog::catat('ubah_cepat_lahan', null, $lahan->id, $lama, $baru);
+        }
+
+        return back()->with('success', "Lahan {$lahan->kode} diperbarui.");
+    }
+
     private function validated(Request $request, ?Lahan $lahan = null): array
     {
         return $request->validate([
