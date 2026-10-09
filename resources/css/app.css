@@ -1,3 +1,79 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@theme {
+  /* hijau utama (view memakai nama indigo; nilainya diganti hijau) */
+  --color-indigo-50: #f1f6ef;
+  --color-indigo-100: #e0ebdb;
+  --color-indigo-200: #c3d9bd;
+  --color-indigo-300: #9bc08f;
+  --color-indigo-400: #73a26b;
+  --color-indigo-500: #538a4d;
+  --color-indigo-600: #3f6e3a;
+  --color-indigo-700: #345a30;
+  --color-indigo-800: #2a4727;
+  --color-indigo-900: #213821;
+  --color-indigo-950: #12200f;
+  /* hijau status (sama dengan hijau utama) */
+  --color-green-50: #f1f6ef;
+  --color-green-100: #e0ebdb;
+  --color-green-200: #c3d9bd;
+  --color-green-300: #9bc08f;
+  --color-green-400: #73a26b;
+  --color-green-500: #538a4d;
+  --color-green-600: #3f6e3a;
+  --color-green-700: #345a30;
+  --color-green-800: #2a4727;
+  --color-green-900: #213821;
+  --color-green-950: #12200f;
+  /* tanah: latar krem dan teks */
+  --color-gray-50: #fbfaf6;
+  --color-gray-100: #f4f2eb;
+  --color-gray-200: #e5e2d6;
+  --color-gray-300: #cfcbbb;
+  --color-gray-400: #a7a392;
+  --color-gray-500: #6b6957;
+  --color-gray-600: #55544a;
+  --color-gray-700: #4b4a3e;
+  --color-gray-800: #34342b;
+  --color-gray-900: #24251e;
+  --color-gray-950: #15160f;
+  /* ochre: peringatan */
+  --color-yellow-50: #fbf7ea;
+  --color-yellow-100: #f5ebc9;
+  --color-yellow-200: #ebd594;
+  --color-yellow-300: #dfbb63;
+  --color-yellow-400: #d3a441;
+  --color-yellow-500: #bd8a2c;
+  --color-yellow-600: #9c6d20;
+  --color-yellow-700: #7b531b;
+  --color-yellow-800: #5f4119;
+  --color-yellow-900: #4a3216;
+  --color-yellow-950: #2a1c0b;
+  /* bata: bahaya, tolak, hapus */
+  --color-red-50: #fbf1ee;
+  --color-red-100: #f6dfd8;
+  --color-red-200: #eec0b3;
+  --color-red-300: #e29a88;
+  --color-red-400: #d0705c;
+  --color-red-500: #b9513c;
+  --color-red-600: #a2402f;
+  --color-red-700: #843327;
+  --color-red-800: #6c2b22;
+  --color-red-900: #57261f;
+  --color-red-950: #301210;
+  /* biru kelabu: info */
+  --color-blue-50: #f2f6f9;
+  --color-blue-100: #e1eaf1;
+  --color-blue-200: #c5d6e4;
+  --color-blue-300: #9bb8cf;
+  --color-blue-400: #6f94b1;
+  --color-blue-500: #4f7896;
+  --color-blue-600: #3d6279;
+  --color-blue-700: #324f63;
+  --color-blue-800: #2a4152;
+  --color-blue-900: #223442;
+  --color-blue-950: #151f29;
+}
