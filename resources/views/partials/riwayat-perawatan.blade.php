@@ -26,7 +26,7 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">
-                        @if (($admin ?? false) && $log->pelaksana === 'admin' && $peminjaman->status === 'menunggu_pemeriksaan')
+                        @if (($admin ?? false) && in_array($log->pelaksana, ['admin', 'pekerja'], true) && $log->kegiatan === 'pembersihan' && $peminjaman->status === 'menunggu_pemeriksaan')
                             <form method="POST" action="{{ route('admin.pembersihan.destroy', $log) }}" onsubmit="return confirm('Hapus catatan ini? Total biaya dihitung ulang.')">
                                 @csrf @method('DELETE')
                                 <button class="text-red-600 hover:underline">Hapus</button>

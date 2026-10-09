@@ -13,7 +13,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('peminjaman_id')->constrained('peminjamans')->restrictOnDelete();
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
-            $table->enum('pelaksana', ['peminjam', 'admin']);
+            $table->enum('pelaksana', ['peminjam', 'pekerja', 'admin']);
             $table->date('tanggal');
             $table->enum('kegiatan', [
                 'menyiram', 'pemupukan', 'penyiangan', 'pengendalian_hama', 'lainnya', 'pembersihan',

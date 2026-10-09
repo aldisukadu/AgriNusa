@@ -15,7 +15,7 @@ class PeminjamanPolicy
 
     public function view(User $user, Peminjaman $peminjaman): bool
     {
-        return $user->id === $peminjaman->user_id;
+        return $user->isPekerja() || $user->id === $peminjaman->user_id;
     }
 
     public function update(User $user, Peminjaman $peminjaman): bool

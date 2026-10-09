@@ -1,16 +1,22 @@
 @php
-    $menu = auth()->user()->isAdmin()
-        ? [
+    $menu = match (auth()->user()->role) {
+        \App\Models\User::ROLE_ADMIN => [
             ['Dashboard', 'admin.dashboard', 'admin.dashboard'],
             ['Green House', 'admin.green-houses.index', 'admin.green-houses.*'],
             ['Lahan', 'admin.lahans.index', 'admin.lahans.*'],
             ['Peminjaman', 'admin.peminjamans.index', 'admin.peminjamans.*'],
-        ]
-        : [
+            ['Pekerja', 'admin.pekerja.index', 'admin.pekerja.*'],
+        ],
+        \App\Models\User::ROLE_PEKERJA => [
+            ['Dashboard', 'pekerja.dashboard', 'pekerja.dashboard'],
+            ['Peminjaman', 'pekerja.peminjamans.index', 'pekerja.peminjamans.*'],
+        ],
+        default => [
             ['Dashboard', 'peminjam.dashboard', 'peminjam.dashboard'],
             ['Daftar Lahan', 'peminjam.lahans.index', 'peminjam.lahans.*'],
             ['Peminjaman Saya', 'peminjam.peminjamans.index', 'peminjam.peminjamans.*'],
-        ];
+        ],
+    };
 @endphp
 <nav class="flex flex-wrap gap-2 text-sm">
     @foreach ($menu as [$label, $rute, $pola])

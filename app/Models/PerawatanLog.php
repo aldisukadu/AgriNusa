@@ -10,10 +10,14 @@ class PerawatanLog extends Model
     protected $table = 'perawatan_logs';
 
     public const PELAKSANA_PEMINJAM = 'peminjam';
+
+    public const PELAKSANA_PEKERJA = 'pekerja';
+
     public const PELAKSANA_ADMIN = 'admin';
 
-    // Pilihan kegiatan perawatan oleh peminjam. Pembersihan hanya dicatat admin.
+    // Pilihan kegiatan perawatan. Pembersihan dicatat terpisah saat pemeriksaan.
     public const KEGIATAN = ['menyiram', 'pemupukan', 'penyiangan', 'pengendalian_hama', 'lainnya'];
+
     public const KEGIATAN_PEMBERSIHAN = 'pembersihan';
 
     // pelaksana, user_id, dan biaya diisi lewat buat(), bukan dari input form.

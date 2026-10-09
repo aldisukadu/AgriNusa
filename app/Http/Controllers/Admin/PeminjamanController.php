@@ -37,7 +37,11 @@ class PeminjamanController extends Controller
             ->where('tanggal_selesai', '>=', $peminjaman->tanggal_mulai->toDateString())
             ->count();
 
-        return view('admin.peminjamans.show', compact('peminjaman', 'bersaing'));
+        return view('admin.peminjamans.show', [
+            'peminjaman' => $peminjaman,
+            'bersaing' => $bersaing,
+            'isAdmin' => true,
+        ]);
     }
 
     public function setujui(Peminjaman $peminjaman): RedirectResponse

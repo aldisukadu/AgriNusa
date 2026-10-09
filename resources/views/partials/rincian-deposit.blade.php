@@ -7,7 +7,7 @@
             <dd>Rp {{ number_format($peminjaman->nominal_deposit, 0, ',', '.') }}</dd>
         </div>
         <div>
-            <dt class="text-gray-500">Biaya pembersihan oleh admin</dt>
+            <dt class="text-gray-500">Biaya pembersihan tercatat</dt>
             <dd>Rp {{ number_format($peminjaman->total_biaya_pembersihan, 0, ',', '.') }}</dd>
         </div>
         <div>

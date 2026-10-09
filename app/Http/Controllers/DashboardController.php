@@ -60,6 +60,27 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function pekerja(): View
+    {
+        $batasKembali = (int) config('greenhouse.batas_kembali_hari');
+
+        return view('pekerja.dashboard', [
+            'pemeriksaan' => Peminjaman::with(['user', 'lahan'])
+                ->where('status', Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN)
+                ->latest('tanggal_kembali')
+                ->limit(5)
+                ->get(),
+            'pengembalianTerlambat' => Peminjaman::with(['user', 'lahan'])
+                ->where('status', Peminjaman::STATUS_AKTIF)
+                ->whereDate('tanggal_selesai', '<', today()->subDays($batasKembali))
+                ->oldest('tanggal_selesai')
+                ->limit(5)
+                ->get(),
+            'jumlahPemeriksaan' => Peminjaman::where('status', Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN)->count(),
+            'jumlahAktif' => Peminjaman::where('status', Peminjaman::STATUS_AKTIF)->count(),
+        ]);
+    }
+
     private function queryLaporanBayar()
     {
         return Peminjaman::where('status', Peminjaman::STATUS_DISETUJUI)

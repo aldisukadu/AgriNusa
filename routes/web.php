@@ -2,11 +2,15 @@
 
 use App\Http\Controllers\Admin\GreenHouseController;
 use App\Http\Controllers\Admin\LahanController as AdminLahanController;
+use App\Http\Controllers\Admin\PekerjaController as AdminPekerjaController;
 use App\Http\Controllers\Admin\PembayaranController as AdminPembayaranController;
-use App\Http\Controllers\Admin\PengembalianController as AdminPengembalianController;
 use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
+use App\Http\Controllers\Admin\PengembalianController as AdminPengembalianController;
 use App\Http\Controllers\BuktiBayarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Pekerja\PeminjamanController as PekerjaPeminjamanController;
+use App\Http\Controllers\Pekerja\PengembalianController as PekerjaPengembalianController;
+use App\Http\Controllers\Pekerja\PerawatanController as PekerjaPerawatanController;
 use App\Http\Controllers\Peminjam\LahanController as PeminjamLahanController;
 use App\Http\Controllers\Peminjam\PembayaranController as PeminjamPembayaranController;
 use App\Http\Controllers\Peminjam\PeminjamanController as PeminjamPeminjamanController;
@@ -14,6 +18,7 @@ use App\Http\Controllers\Peminjam\PengembalianController as PeminjamPengembalian
 use App\Http\Controllers\Peminjam\PerawatanController as PeminjamPerawatanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\RoleMiddleware;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,7 +26,13 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return redirect()->route(auth()->user()->isAdmin() ? 'admin.dashboard' : 'peminjam.dashboard');
+    $route = match (auth()->user()->role) {
+        User::ROLE_ADMIN => 'admin.dashboard',
+        User::ROLE_PEKERJA => 'pekerja.dashboard',
+        default => 'peminjam.dashboard',
+    };
+
+    return redirect()->route($route);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -43,6 +54,8 @@ Route::middleware(['auth', RoleMiddleware::class.':admin'])
             ->except('show')->parameters(['lahans' => 'lahan']);
         Route::patch('lahans/{lahan}/cepat', [AdminLahanController::class, 'cepatUbah'])->name('lahans.cepat');
 
+        Route::resource('pekerja', AdminPekerjaController::class)->only(['index', 'create', 'store']);
+
         Route::get('peminjamans', [AdminPeminjamanController::class, 'index'])->name('peminjamans.index');
         Route::get('peminjamans/{peminjaman}', [AdminPeminjamanController::class, 'show'])->name('peminjamans.show');
         Route::post('peminjamans/{peminjaman}/setujui', [AdminPeminjamanController::class, 'setujui'])->name('peminjamans.setujui');
@@ -55,6 +68,17 @@ Route::middleware(['auth', RoleMiddleware::class.':admin'])
         Route::post('peminjamans/{peminjaman}/pembersihan', [AdminPengembalianController::class, 'catat'])->name('peminjamans.pembersihan.store');
         Route::post('peminjamans/{peminjaman}/selesaikan', [AdminPengembalianController::class, 'selesaikan'])->name('peminjamans.selesaikan');
         Route::delete('pembersihan/{perawatan_log}', [AdminPengembalianController::class, 'hapus'])->name('pembersihan.destroy');
+    });
+
+Route::middleware(['auth', RoleMiddleware::class.':pekerja'])
+    ->prefix('pekerja')->name('pekerja.')
+    ->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'pekerja'])->name('dashboard');
+        Route::get('peminjamans', [PekerjaPeminjamanController::class, 'index'])->name('peminjamans.index');
+        Route::get('peminjamans/{peminjaman}', [PekerjaPeminjamanController::class, 'show'])->name('peminjamans.show');
+        Route::post('peminjamans/{peminjaman}/kembalikan', [PekerjaPengembalianController::class, 'kembalikan'])->name('peminjamans.kembalikan');
+        Route::post('peminjamans/{peminjaman}/pembersihan', [PekerjaPengembalianController::class, 'catatPembersihan'])->name('peminjamans.pembersihan.store');
+        Route::post('peminjamans/{peminjaman}/perawatan', [PekerjaPerawatanController::class, 'store'])->name('peminjamans.perawatan.store');
     });
 
 Route::middleware(['auth', RoleMiddleware::class.':peminjam'])

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\PerawatanLog;
 use App\Models\Peminjaman;
+use App\Models\PerawatanLog;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +28,30 @@ class PerawatanService
                 }
 
                 return PerawatanLog::buat($p, $user, PerawatanLog::PELAKSANA_PEMINJAM, $data['kegiatan'], $data, 0, $path);
+            });
+        } catch (Throwable $e) {
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+            throw $e;
+        }
+    }
+
+    public function catatPekerja(Peminjaman $peminjaman, User $user, array $data, ?UploadedFile $foto): PerawatanLog
+    {
+        $path = $foto?->store('perawatan', 'public');
+
+        try {
+            return DB::transaction(function () use ($peminjaman, $user, $data, $path) {
+                $p = Peminjaman::whereKey($peminjaman->id)->lockForUpdate()->firstOrFail();
+
+                if ($p->status !== Peminjaman::STATUS_AKTIF) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Perawatan pekerja hanya bisa dicatat saat peminjaman aktif.',
+                    ]);
+                }
+
+                return PerawatanLog::buat($p, $user, PerawatanLog::PELAKSANA_PEKERJA, $data['kegiatan'], $data, 0, $path);
             });
         } catch (Throwable $e) {
             if ($path) {

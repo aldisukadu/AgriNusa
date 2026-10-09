@@ -74,7 +74,42 @@ class RoleAccessTest extends TestCase
     public function test_dashboard_mengarahkan_sesuai_role(): void
     {
         $this->actingAs($this->buatUser('admin'))->get('/dashboard')->assertRedirect('/admin/dashboard');
+        $this->actingAs($this->buatUser('pekerja'))->get('/dashboard')->assertRedirect('/pekerja/dashboard');
         $this->actingAs($this->buatUser('peminjam'))->get('/dashboard')->assertRedirect('/peminjam/dashboard');
+    }
+
+    public function test_pekerja_bisa_melihat_peminjaman_tetapi_tidak_mengelola_data_admin(): void
+    {
+        $pekerja = $this->buatUser('pekerja');
+        $peminjaman = $this->buatPeminjaman($this->buatUser('peminjam'));
+
+        $this->actingAs($pekerja)->get(route('pekerja.dashboard'))->assertOk();
+        $this->actingAs($pekerja)->get(route('pekerja.peminjamans.index'))->assertOk();
+        $this->actingAs($pekerja)->get(route('pekerja.peminjamans.show', $peminjaman))
+            ->assertOk()
+            ->assertDontSee('Setujui')
+            ->assertDontSee('Konfirmasi pembayaran');
+        $this->actingAs($pekerja)->get(route('admin.dashboard'))->assertForbidden();
+        $this->actingAs($pekerja)->get(route('admin.lahans.index'))->assertForbidden();
+        $this->actingAs($pekerja)->get(route('admin.pekerja.index'))->assertForbidden();
+        $this->actingAs($pekerja)->post(route('admin.peminjamans.setujui', $peminjaman))->assertForbidden();
+    }
+
+    public function test_admin_dapat_membuat_akun_pekerja(): void
+    {
+        $admin = $this->buatUser('admin');
+
+        $this->actingAs($admin)->post(route('admin.pekerja.store'), [
+            'name' => 'Petugas Green House',
+            'email' => 'petugas@example.com',
+            'no_hp' => '081234567890',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertRedirect(route('admin.pekerja.index'));
+
+        $pekerja = User::where('email', 'petugas@example.com')->firstOrFail();
+        $this->assertSame('pekerja', $pekerja->role);
+        $this->assertTrue(password_verify('password123', $pekerja->password));
     }
 
     public function test_policy_peminjaman(): void

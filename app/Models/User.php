@@ -12,6 +12,9 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_PEKERJA = 'pekerja';
+
     public const ROLE_PEMINJAM = 'peminjam';
 
     // 'role' sengaja tidak fillable agar pendaftar tidak bisa menjadi admin.
@@ -30,6 +33,11 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isPekerja(): bool
+    {
+        return $this->role === self::ROLE_PEKERJA;
     }
 
     public function peminjamans(): HasMany

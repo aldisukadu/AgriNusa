@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\PerawatanLog;
 use App\Models\Peminjaman;
+use App\Models\PerawatanLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class PengembalianTest extends TestCase
 {
-    use RefreshDatabase, MembuatData;
+    use MembuatData, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -99,6 +99,57 @@ class PengembalianTest extends TestCase
         $this->actingAs($p->user)
             ->post(route('peminjam.peminjamans.kembali', $p), ['foto_kembali' => $this->foto()])
             ->assertSessionHasErrors('kondisi_kembali');
+    }
+
+    public function test_pekerja_dapat_mencatat_pengembalian_dengan_foto(): void
+    {
+        $p = $this->aktif();
+        $pekerja = $this->buatUser('pekerja');
+
+        $this->actingAs($pekerja)
+            ->post(route('pekerja.peminjamans.kembalikan', $p), [
+                'kondisi_kembali' => 'Lahan diterima dalam kondisi baik',
+                'foto_kembali' => $this->foto(),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $p->refresh();
+        $this->assertSame(Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN, $p->status);
+        $this->assertSame('Lahan diterima dalam kondisi baik', $p->kondisi_kembali);
+        Storage::disk('public')->assertExists($p->foto_kembali);
+    }
+
+    public function test_pekerja_dapat_mencatat_perawatan_saat_peminjaman_aktif(): void
+    {
+        $p = $this->aktif();
+        $pekerja = $this->buatUser('pekerja');
+
+        $this->actingAs($pekerja)
+            ->post(route('pekerja.peminjamans.perawatan.store', $p), [
+                'tanggal' => today()->toDateString(),
+                'kegiatan' => 'penyiangan',
+                'catatan' => 'Membersihkan gulma di sekitar lahan',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $log = PerawatanLog::firstOrFail();
+        $this->assertSame(PerawatanLog::PELAKSANA_PEKERJA, $log->pelaksana);
+        $this->assertSame($pekerja->id, $log->user_id);
+        $this->assertSame(0, $log->biaya);
+    }
+
+    public function test_biaya_pembersihan_pekerja_dipotong_dari_deposit(): void
+    {
+        $p = $this->periksa();
+        $pekerja = $this->buatUser('pekerja');
+
+        $this->actingAs($pekerja)
+            ->post(route('pekerja.peminjamans.pembersihan.store', $p), $this->dataPembersihan(['biaya' => 25000]))
+            ->assertSessionHasNoErrors();
+
+        $log = PerawatanLog::firstOrFail();
+        $this->assertSame(PerawatanLog::PELAKSANA_PEKERJA, $log->pelaksana);
+        $this->assertSame(25000, $p->fresh()->total_biaya_pembersihan);
     }
 
     public function test_hanya_peminjaman_aktif_yang_bisa_dikembalikan(): void

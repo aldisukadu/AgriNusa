@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\AktivitasLog;
-use App\Models\PerawatanLog;
 use App\Models\Peminjaman;
+use App\Models\PerawatanLog;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +47,12 @@ class PengembalianService
 
     public function kembalikanOlehAdmin(Peminjaman $peminjaman): Peminjaman
     {
-        return DB::transaction(function () use ($peminjaman) {
+        return $this->tandaiKembaliOlehPetugas($peminjaman, User::ROLE_ADMIN);
+    }
+
+    private function tandaiKembaliOlehPetugas(Peminjaman $peminjaman, string $role): Peminjaman
+    {
+        return DB::transaction(function () use ($peminjaman, $role) {
             $p = $this->kunci($peminjaman->id);
 
             if ($p->status !== Peminjaman::STATUS_AKTIF) {
@@ -65,7 +70,7 @@ class PengembalianService
             $p->kondisi_kembali = 'Ditandai oleh admin: peminjam tidak mengembalikan lahan.';
             $p->save();
 
-            AktivitasLog::catat('kembalikan_oleh_admin', $p->id, $p->lahan_id,
+            AktivitasLog::catat('kembalikan_oleh_'.$role, $p->id, $p->lahan_id,
                 ['status' => Peminjaman::STATUS_AKTIF],
                 ['status' => $p->status]
             );
@@ -74,12 +79,12 @@ class PengembalianService
         });
     }
 
-    public function catatPembersihan(Peminjaman $peminjaman, User $admin, array $data, ?UploadedFile $foto): PerawatanLog
+    public function catatPembersihan(Peminjaman $peminjaman, User $petugas, array $data, ?UploadedFile $foto): PerawatanLog
     {
         $path = $foto?->store('perawatan', 'public');
 
         try {
-            return DB::transaction(function () use ($peminjaman, $admin, $data, $path) {
+            return DB::transaction(function () use ($peminjaman, $petugas, $data, $path) {
                 $p = $this->kunci($peminjaman->id);
 
                 if ($p->status !== Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN) {
@@ -87,7 +92,8 @@ class PengembalianService
                 }
 
                 $log = PerawatanLog::buat(
-                    $p, $admin, PerawatanLog::PELAKSANA_ADMIN, PerawatanLog::KEGIATAN_PEMBERSIHAN,
+                    $p, $petugas, $petugas->isPekerja() ? PerawatanLog::PELAKSANA_PEKERJA : PerawatanLog::PELAKSANA_ADMIN,
+                    PerawatanLog::KEGIATAN_PEMBERSIHAN,
                     $data, (int) $data['biaya'], $path
                 );
                 $this->hitungUlang($p);
@@ -113,8 +119,11 @@ class PengembalianService
             $p = $this->kunci($perawatanLog->peminjaman_id);
             $log = PerawatanLog::whereKey($perawatanLog->id)->lockForUpdate()->firstOrFail();
 
-            if ($log->pelaksana !== PerawatanLog::PELAKSANA_ADMIN) {
-                $this->gagal('hapus', 'Catatan peminjam tidak dapat dihapus.');
+            if (
+                $log->kegiatan !== PerawatanLog::KEGIATAN_PEMBERSIHAN
+                || ! in_array($log->pelaksana, [PerawatanLog::PELAKSANA_ADMIN, PerawatanLog::PELAKSANA_PEKERJA], true)
+            ) {
+                $this->gagal('hapus', 'Hanya catatan pembersihan petugas yang dapat dihapus.');
             }
 
             if ($p->status !== Peminjaman::STATUS_MENUNGGU_PEMERIKSAAN) {
@@ -178,7 +187,8 @@ class PengembalianService
     private function hitungUlang(Peminjaman $p): void
     {
         $p->total_biaya_pembersihan = (int) $p->perawatanLogs()
-            ->where('pelaksana', PerawatanLog::PELAKSANA_ADMIN)
+            ->whereIn('pelaksana', [PerawatanLog::PELAKSANA_ADMIN, PerawatanLog::PELAKSANA_PEKERJA])
+            ->where('kegiatan', PerawatanLog::KEGIATAN_PEMBERSIHAN)
             ->sum('biaya');
         $p->save();
     }

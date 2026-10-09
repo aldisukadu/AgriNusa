@@ -5,6 +5,8 @@
     </x-slot>
 
     @php
+        $isAdmin = $isAdmin ?? auth()->user()->isAdmin();
+        $routePrefix = $isAdmin ? 'admin' : 'pekerja';
         $inputClass = 'block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm';
         $fileClass = 'block mt-1 w-full text-sm text-gray-700 dark:text-gray-300';
         $batasKembali = $peminjaman->tanggal_selesai->copy()->addDays((int) config('greenhouse.batas_kembali_hari'));
@@ -46,7 +48,7 @@
                     @endif
                 </dl>
 
-                @if ($peminjaman->status === 'menunggu')
+                @if ($isAdmin && $peminjaman->status === 'menunggu')
                     @if ($bersaing > 0)
                         <div class="mt-6 p-3 rounded bg-yellow-100 text-yellow-800 text-sm">
                             {{ $bersaing }} pengajuan lain masih menunggu untuk lahan dan periode yang beririsan. Menyetujui pengajuan ini tidak menolak yang lain otomatis; pengajuan lain itu akan gagal disetujui karena bentrok.
@@ -68,7 +70,7 @@
                     </div>
                 @endif
 
-                @if ($peminjaman->status === 'disetujui' && $peminjaman->status_deposit === 'belum_dibayar')
+                @if ($isAdmin && $peminjaman->status === 'disetujui' && $peminjaman->status_deposit === 'belum_dibayar')
                     <div class="mt-6">
                         <h3 class="font-semibold">Pembayaran deposit Rp {{ number_format($peminjaman->nominal_deposit, 0, ',', '.') }}</h3>
 
@@ -106,26 +108,75 @@
                 @endif
 
                 <div class="mt-6">
-                    <a href="{{ route('admin.peminjamans.index') }}" class="text-sm underline text-gray-600 dark:text-gray-400">Kembali</a>
+                    <a href="{{ route($routePrefix.'.peminjamans.index') }}" class="text-sm underline text-gray-600 dark:text-gray-400">Kembali</a>
                 </div>
             </div>
 
             @if ($peminjaman->status === 'aktif')
                 <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100">
-                    <h3 class="font-semibold">Pengembalian lahan</h3>
-                    @if (today()->gt($batasKembali))
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Peminjam tidak mengembalikan lahan sampai batas {{ $batasKembali->format('d/m/Y') }}. Tandai dikembalikan untuk memulai pemeriksaan dan pembersihan.
-                        </p>
-                        <form method="POST" action="{{ route('admin.peminjamans.kembalikan', $peminjaman) }}" class="mt-3" onsubmit="return confirm('Tandai lahan ini sebagai dikembalikan?')">
-                            @csrf
-                            <button class="px-4 py-2 bg-red-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest">Tandai dikembalikan</button>
-                        </form>
+                    @if ($isAdmin)
+                        <h3 class="font-semibold">Pengembalian lahan</h3>
+                        @if (today()->gt($batasKembali))
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                Peminjam tidak mengembalikan lahan sampai batas {{ $batasKembali->format('d/m/Y') }}. Tandai untuk memulai pemeriksaan dan pembersihan.
+                            </p>
+                            <form method="POST" action="{{ route('admin.peminjamans.kembalikan', $peminjaman) }}" class="mt-3" onsubmit="return confirm('Tandai lahan ini untuk pemeriksaan?')">
+                                @csrf
+                                <button class="px-4 py-2 bg-red-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest">Tandai untuk pemeriksaan</button>
+                            </form>
+                        @else
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                Peminjam mengembalikan lahan sendiri. Jika belum dikembalikan sampai {{ $batasKembali->format('d/m/Y') }}, Anda dapat menandainya untuk pemeriksaan.
+                            </p>
+                        @endif
                     @else
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Peminjam mengembalikan lahan sendiri. Jika belum dikembalikan sampai {{ $batasKembali->format('d/m/Y') }}, Anda dapat menandainya dikembalikan.
-                        </p>
+                        <h3 class="font-semibold">Catat penerimaan pengembalian</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Isi kondisi lahan dan unggah foto saat lahan benar-benar diterima dari peminjam.</p>
+                        <form method="POST" action="{{ route('pekerja.peminjamans.kembalikan', $peminjaman) }}" enctype="multipart/form-data" class="mt-4">
+                            @csrf
+                            <div>
+                                <x-input-label for="kondisi_kembali" value="Kondisi lahan saat diterima" />
+                                <textarea id="kondisi_kembali" name="kondisi_kembali" rows="2" required maxlength="1000" class="{{ $inputClass }}">{{ old('kondisi_kembali') }}</textarea>
+                            </div>
+                            <div class="mt-4">
+                                <x-input-label for="foto_kembali" value="Foto kondisi lahan (wajib; JPG, PNG, atau WEBP, maks 4 MB)" />
+                                <input id="foto_kembali" name="foto_kembali" type="file" accept=".jpg,.jpeg,.png,.webp" required class="{{ $fileClass }}">
+                            </div>
+                            <x-primary-button class="mt-4">Catat pengembalian</x-primary-button>
+                        </form>
                     @endif
+
+                    @unless ($isAdmin)
+                        <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">
+                            <h4 class="font-semibold">Catat perawatan lahan</h4>
+                            <form method="POST" action="{{ route('pekerja.peminjamans.perawatan.store', $peminjaman) }}" enctype="multipart/form-data" class="mt-3">
+                                @csrf
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <x-input-label for="tanggal" value="Tanggal" />
+                                        <x-text-input id="tanggal" name="tanggal" type="date" class="block mt-1 w-full" :value="old('tanggal', today()->toDateString())" :max="today()->toDateString()" required />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="kegiatan" value="Kegiatan" />
+                                        <select id="kegiatan" name="kegiatan" required class="{{ $inputClass }}">
+                                            @foreach (\App\Models\PerawatanLog::KEGIATAN as $kegiatan)
+                                                <option value="{{ $kegiatan }}" @selected(old('kegiatan') === $kegiatan)>{{ ucfirst(str_replace('_', ' ', $kegiatan)) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <x-input-label for="catatan" value="Catatan (opsional)" />
+                                    <textarea id="catatan" name="catatan" rows="2" maxlength="1000" class="{{ $inputClass }}">{{ old('catatan') }}</textarea>
+                                </div>
+                                <div class="mt-4">
+                                    <x-input-label for="foto" value="Foto (opsional)" />
+                                    <input id="foto" name="foto" type="file" accept=".jpg,.jpeg,.png,.webp" class="{{ $fileClass }}">
+                                </div>
+                                <x-primary-button class="mt-4">Simpan catatan perawatan</x-primary-button>
+                            </form>
+                        </div>
+                    @endunless
                 </div>
             @endif
 
@@ -137,7 +188,7 @@
                         Periksa kondisi lahan dan bandingkan dengan foto dari peminjam. Jika kotor, catat setiap tindakan pembersihan beserta biayanya, lalu selesaikan deposit.
                     </p>
 
-                    <form method="POST" action="{{ route('admin.peminjamans.pembersihan.store', $peminjaman) }}" enctype="multipart/form-data" class="mt-4">
+                    <form method="POST" action="{{ route($routePrefix.'.peminjamans.pembersihan.store', $peminjaman) }}" enctype="multipart/form-data" class="mt-4">
                         @csrf
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -160,25 +211,27 @@
                         <x-primary-button class="mt-4">Catat pembersihan</x-primary-button>
                     </form>
 
-                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <p class="text-sm">
-                            Jika diselesaikan sekarang: deposit <strong>{{ str_replace('_', ' ', $hasil['status_deposit']) }}</strong>,
-                            sisa dikembalikan <strong>Rp {{ number_format($hasil['sisa'], 0, ',', '.') }}</strong>
-                            @if ($hasil['kekurangan'] > 0)
-                                , kekurangan biaya <strong>Rp {{ number_format($hasil['kekurangan'], 0, ',', '.') }}</strong>
-                            @endif
-                            .
-                        </p>
-                        <form method="POST" action="{{ route('admin.peminjamans.selesaikan', $peminjaman) }}" class="mt-3" onsubmit="return confirm('Selesaikan deposit? Setelah ini catatan pembersihan tidak bisa diubah.')">
-                            @csrf
-                            <x-primary-button>Selesaikan deposit</x-primary-button>
-                        </form>
-                    </div>
+                    @if ($isAdmin)
+                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <p class="text-sm">
+                                Jika diselesaikan sekarang: deposit <strong>{{ str_replace('_', ' ', $hasil['status_deposit']) }}</strong>,
+                                sisa dikembalikan <strong>Rp {{ number_format($hasil['sisa'], 0, ',', '.') }}</strong>
+                                @if ($hasil['kekurangan'] > 0)
+                                    , kekurangan biaya <strong>Rp {{ number_format($hasil['kekurangan'], 0, ',', '.') }}</strong>
+                                @endif
+                                .
+                            </p>
+                            <form method="POST" action="{{ route('admin.peminjamans.selesaikan', $peminjaman) }}" class="mt-3" onsubmit="return confirm('Selesaikan deposit? Setelah ini catatan pembersihan tidak bisa diubah.')">
+                                @csrf
+                                <x-primary-button>Selesaikan deposit</x-primary-button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             @endif
 
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6 text-gray-900 dark:text-gray-100">
-                @include('partials.riwayat-perawatan', ['admin' => true])
+                @include('partials.riwayat-perawatan', ['admin' => $isAdmin])
             </div>
         </div>
     </div>
